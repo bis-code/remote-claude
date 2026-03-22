@@ -281,6 +281,21 @@ else
     echo "$OUTPUT" | tail -5
 fi
 
+# ── Fuzz: Username with special chars rejected ───────────────────────────
+
+OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
+    export SUDO_USER=""
+    # Feed injection attempt then valid username then empty passphrase
+    printf "test;rm\ntest\$(cmd)\nvalid-user\n\n" | timeout 15 /opt/remote-claude/setup.sh 2>&1 || true
+')
+
+if echo "$OUTPUT" | grep -q "Invalid username" && echo "$OUTPUT" | grep -q "valid-user"; then
+    report "PASS" "fuzz: username with special chars rejected (injection prevented)"
+else
+    report "FAIL" "fuzz: username with special chars rejected (injection prevented)"
+    echo "$OUTPUT" | tail -5
+fi
+
 # ── Fuzz: Teardown refuses to delete root ────────────────────────────────
 
 OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '

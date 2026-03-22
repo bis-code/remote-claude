@@ -91,6 +91,11 @@ if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
             continue
         fi
 
+        if [[ ! "$TARGET_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+            error "Invalid username. Use only lowercase letters, digits, hyphens, and underscores."
+            continue
+        fi
+
         break
     done
 
@@ -102,11 +107,19 @@ if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
     else
         echo "    User '$TARGET_USER' already exists."
     fi
+
+    # Enable passwordless sudo (secured by SSH key + Tailscale)
+    if [[ ! -f "/etc/sudoers.d/$TARGET_USER" ]]; then
+        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$TARGET_USER"
+        chmod 440 "/etc/sudoers.d/$TARGET_USER"
+        echo "    Passwordless sudo enabled for '$TARGET_USER'."
+        log "Passwordless sudo configured for $TARGET_USER"
+    fi
 else
     echo "    Using user: $TARGET_USER"
 fi
 
-TARGET_HOME=$(eval echo "~$TARGET_USER")
+TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 log "Target user: $TARGET_USER, home: $TARGET_HOME"
 
 # ── Step 3: Generate SSH keypair ──────────────────────────────────────────
@@ -136,6 +149,7 @@ else
     fi
 
     ssh-keygen -t ed25519 -f "$SSH_KEY" -N "$SSH_PASSPHRASE" -q
+    unset SSH_PASSPHRASE SSH_PASSPHRASE_CONFIRM
     chown -R "${TARGET_USER}:${TARGET_USER}" "$SSH_DIR"
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_KEY"
@@ -168,6 +182,7 @@ cat "${SSH_KEY}.pub"
 printf "    %s────────────────────────────────────────%s\n" "$YELLOW" "$NC"
 echo ""
 printf "    %sAfter saving the private key, this will be used to connect.%s\n" "$BOLD" "$NC"
+printf "    %sClear your terminal scrollback after copying for security.%s\n" "$YELLOW" "$NC"
 
 pause
 

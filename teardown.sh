@@ -8,17 +8,17 @@ SSH_BACKUP="/etc/ssh/sshd_config.backup.remote-claude"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BOLD='\033[1m'
-NC='\033[0m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+RED=$'\033[0;31m'
+BOLD=$'\033[1m'
+NC=$'\033[0m'
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-info()  { echo -e "${GREEN}[INFO]${NC}  $1"; }
-warn()  { echo -e "${YELLOW}[SKIP]${NC}  $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+info()  { printf "%s[INFO]%s  %s\n" "$GREEN" "$NC" "$1"; }
+warn()  { printf "%s[SKIP]%s  %s\n" "$YELLOW" "$NC" "$1"; }
+error() { printf "%s[ERROR]%s %s\n" "$RED" "$NC" "$1" >&2; }
 
 # ── Pre-flight ──────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ fi
 # ── Step 1: Confirm ────────────────────────────────────────────────────────
 
 echo ""
-echo -e "${BOLD}This will remove:${NC}"
+printf "%sThis will remove:%s\n" "$BOLD" "$NC"
 echo "  - Claude Code (npm global package)"
 echo "  - Node.js (and nodesource repo)"
 echo "  - Tailscale"
@@ -108,12 +108,13 @@ if [[ "$REMOVE_USER" == "y" || "$REMOVE_USER" == "Y" ]]; then
         error "User '$DEL_USER' does not exist — skipping."
     else
         deluser --remove-home "$DEL_USER" 2>/dev/null
-        info "User '$DEL_USER' and home directory removed."
+        rm -f "/etc/sudoers.d/$DEL_USER"
+        info "User '$DEL_USER', home directory, and sudoers entry removed."
     fi
 fi
 
 # ── Step 7: Done ──────────────────────────────────────────────────────────
 
 echo ""
-echo -e "${GREEN}${BOLD}Clean. Server is back to fresh state.${NC}"
+printf "%s%sClean. Server is back to fresh state.%s\n" "$GREEN" "$BOLD" "$NC"
 echo ""
