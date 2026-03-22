@@ -161,20 +161,31 @@ fi
 
 manual_step "Authenticate Tailscale."
 echo ""
-echo "    Run the following command and follow the link to authenticate:"
+echo "    Run this command:"
 echo -e "    ${BOLD}sudo tailscale up${NC}"
+echo ""
+echo "    A URL will appear — open it in your browser and sign in"
+echo "    to your Tailscale account to authorize this server."
 
 pause
 
 # ── Step 8: Display Tailscale IP (manual) ─────────────────────────────────
 
-manual_step "Save your Tailscale IP."
+manual_step "Save your Tailscale IP and set up your client device."
 echo ""
 
 TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
 echo -e "    Your Tailscale IP: ${BOLD}${GREEN}${TS_IP}${NC}"
 echo ""
-echo "    Save this IP — you'll use it to connect from your device."
+echo "    Save this IP — you'll use it to connect."
+echo ""
+echo "    Now install Tailscale on your phone/laptop too:"
+echo "      iOS:     https://apps.apple.com/app/tailscale/id1470499037"
+echo "      Android: https://play.google.com/store/apps/details?id=com.tailscale.ipn"
+echo "      Desktop: https://tailscale.com/download"
+echo ""
+echo "    Sign in with the same Tailscale account. Both devices will"
+echo "    be on the same private network — no port forwarding needed."
 
 pause
 
@@ -220,7 +231,9 @@ echo "    Switch to your user and launch Claude:"
 echo -e "    ${BOLD}su - ${TARGET_USER}${NC}"
 echo -e "    ${BOLD}claude${NC}"
 echo ""
-echo "    Then run ${BOLD}/login${NC} inside Claude to authenticate."
+echo "    Inside Claude, type ${BOLD}/login${NC} and press Enter."
+echo "    A URL will appear — open it in your browser, sign in to"
+echo "    your Anthropic account, and paste the code back here."
 
 pause
 
@@ -231,11 +244,13 @@ echo -e "${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}${BOLD}  Setup complete!${NC}"
 echo -e "${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo "  Connect from your device:"
-echo -e "    ${BOLD}ssh ${TARGET_USER}@${TS_IP}${NC}"
+echo "  Connect from your phone/laptop (with Tailscale running):"
 echo ""
-echo "  Then start Claude:"
-echo -e "    ${BOLD}claude${NC}"
+echo "    1. Open Termius (or any SSH client)"
+echo "    2. Connect to:"
+echo -e "       ${BOLD}ssh ${TARGET_USER}@${TS_IP}${NC}"
+echo "    3. Run:"
+echo -e "       ${BOLD}claude${NC}"
 echo ""
 echo "  Log file: $LOGFILE"
 echo ""
