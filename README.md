@@ -43,19 +43,17 @@ Everything else is automatic.
 
 ## Connecting From Your Device
 
-### 1. Install Tailscale on your phone/laptop
+### 1. Install Tailscale on your phone
 
 - **iOS**: [App Store](https://apps.apple.com/app/tailscale/id1470499037)
 - **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
-- **macOS/Windows/Linux**: [tailscale.com/download](https://tailscale.com/download)
 
 Open Tailscale, sign in with the same account you used on the server. Your phone and server are now on the same private network — no port forwarding, no public IP needed.
 
-### 2. Install Termius (or any SSH client)
+### 2. Install Termius
 
 - **iOS**: [App Store](https://apps.apple.com/app/termius-terminal-ssh-client/id549039908)
 - **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.server.auditor.ssh.client)
-- **Desktop**: [termius.com](https://termius.com)
 
 ### 3. Connect
 
