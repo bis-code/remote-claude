@@ -43,14 +43,37 @@ Everything else is automatic.
 
 ## Connecting From Your Device
 
-After setup, connect from any SSH client (Termius, Terminal, etc.):
+### 1. Install Tailscale on your phone/laptop
+
+- **iOS**: [App Store](https://apps.apple.com/app/tailscale/id1470499037)
+- **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
+- **macOS/Windows/Linux**: [tailscale.com/download](https://tailscale.com/download)
+
+Open Tailscale, sign in with the same account you used on the server. Your phone and server are now on the same private network — no port forwarding, no public IP needed.
+
+### 2. Install Termius (or any SSH client)
+
+- **iOS**: [App Store](https://apps.apple.com/app/termius-terminal-ssh-client/id549039908)
+- **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.server.auditor.ssh.client)
+- **Desktop**: [termius.com](https://termius.com)
+
+### 3. Connect
+
+In Termius, create a new host:
+
+| Field | Value |
+|-------|-------|
+| **Hostname** | Your Tailscale IP (e.g. `100.x.y.z`) |
+| **Username** | The user you created during setup |
+| **Authentication** | SSH key (import the key you generated in setup) |
+
+Connect, then run:
 
 ```bash
-ssh your-user@your-tailscale-ip
 claude
 ```
 
-That's it. You're coding with Claude on your remote server.
+That's it. You're coding with Claude on your remote server from your phone.
 
 ## Teardown
 
