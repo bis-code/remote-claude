@@ -99,25 +99,47 @@ fi
 TARGET_HOME=$(eval echo "~$TARGET_USER")
 log "Target user: $TARGET_USER, home: $TARGET_HOME"
 
-# ── Step 3: SSH key generation (manual) ───────────────────────────────────
+# ── Step 3: Generate SSH keypair ──────────────────────────────────────────
 
-manual_step "Generate an SSH key on your LOCAL machine (not this server)."
-echo ""
-echo "    On your local machine, run:"
-echo -e "    ${BOLD}ssh-keygen -t ed25519${NC}"
-echo ""
-echo "    Skip this if you already have a key at ~/.ssh/id_ed25519"
+auto_step "Generating SSH keypair for ${TARGET_USER}..."
 
-pause
+SSH_DIR="${TARGET_HOME}/.ssh"
+SSH_KEY="${SSH_DIR}/id_ed25519"
 
-# ── Step 4: Copy SSH key to server (manual) ───────────────────────────────
+if [[ -f "$SSH_KEY" ]]; then
+    echo "    SSH key already exists at $SSH_KEY — skipping."
+else
+    mkdir -p "$SSH_DIR"
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -q
+    chown -R "${TARGET_USER}:${TARGET_USER}" "$SSH_DIR"
+    chmod 700 "$SSH_DIR"
+    chmod 600 "$SSH_KEY"
+    chmod 644 "${SSH_KEY}.pub"
+    echo "    SSH keypair generated."
+fi
 
-manual_step "Copy your SSH key to this server."
+# Add public key to authorized_keys
+if ! grep -qf "${SSH_KEY}.pub" "${SSH_DIR}/authorized_keys" 2>/dev/null; then
+    cat "${SSH_KEY}.pub" >> "${SSH_DIR}/authorized_keys"
+    chown "${TARGET_USER}:${TARGET_USER}" "${SSH_DIR}/authorized_keys"
+    chmod 600 "${SSH_DIR}/authorized_keys"
+    echo "    Public key added to authorized_keys."
+fi
+
+log "SSH keypair generated for $TARGET_USER"
+
+# ── Step 4: Save private key to your device (manual) ─────────────────────
+
+manual_step "Save this private key to your phone (Termius)."
 echo ""
-echo "    On your local machine, run:"
-echo -e "    ${BOLD}ssh-copy-id ${TARGET_USER}@$(hostname -I | awk '{print $1}')${NC}"
+echo "    Copy everything between the lines into Termius:"
+echo -e "    ${YELLOW}────────────────────────────────────────${NC}"
+cat "$SSH_KEY"
+echo -e "    ${YELLOW}────────────────────────────────────────${NC}"
 echo ""
-echo "    This allows passwordless SSH login."
+echo "    In Termius: Keychain > + > Key > paste the key above."
+echo ""
+echo "    ${BOLD}After saving, this key will be used to connect.${NC}"
 
 pause
 

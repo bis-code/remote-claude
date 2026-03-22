@@ -90,6 +90,61 @@ else
     echo "$OUTPUT" | grep -E "(BACKUP|PASSAUTH|ROOTLOGIN|ERROR)" | head -5
 fi
 
+# ── Test: SSH keypair auto-generated ──────────────────────────────────────
+
+OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
+    export SUDO_USER=testuser
+    useradd -m testuser 2>/dev/null
+    sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
+    sed -i "1i pause() { return; }" /tmp/setup-auto.sh
+    chmod +x /tmp/setup-auto.sh
+    timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    echo "---CHECKS---"
+    [ -f /home/testuser/.ssh/id_ed25519 ] && echo "PRIVKEY:exists" || echo "PRIVKEY:missing"
+    [ -f /home/testuser/.ssh/id_ed25519.pub ] && echo "PUBKEY:exists" || echo "PUBKEY:missing"
+    [ -f /home/testuser/.ssh/authorized_keys ] && echo "AUTHKEYS:exists" || echo "AUTHKEYS:missing"
+    grep -qf /home/testuser/.ssh/id_ed25519.pub /home/testuser/.ssh/authorized_keys 2>/dev/null && echo "AUTHKEYS:contains-pubkey" || echo "AUTHKEYS:missing-pubkey"
+    stat -c "%a" /home/testuser/.ssh 2>/dev/null | grep -q "700" && echo "PERMS-DIR:700" || echo "PERMS-DIR:wrong"
+    stat -c "%a" /home/testuser/.ssh/id_ed25519 2>/dev/null | grep -q "600" && echo "PERMS-KEY:600" || echo "PERMS-KEY:wrong"
+    stat -c "%U" /home/testuser/.ssh/id_ed25519 2>/dev/null | grep -q "testuser" && echo "OWNER:correct" || echo "OWNER:wrong"
+')
+
+if echo "$OUTPUT" | grep -q "PRIVKEY:exists" && \
+   echo "$OUTPUT" | grep -q "PUBKEY:exists" && \
+   echo "$OUTPUT" | grep -q "AUTHKEYS:contains-pubkey" && \
+   echo "$OUTPUT" | grep -q "PERMS-DIR:700" && \
+   echo "$OUTPUT" | grep -q "PERMS-KEY:600" && \
+   echo "$OUTPUT" | grep -q "OWNER:correct"; then
+    report "PASS" "SSH keypair generated with correct permissions and authorized_keys"
+else
+    report "FAIL" "SSH keypair generated with correct permissions and authorized_keys"
+    echo "$OUTPUT" | grep -E "(PRIVKEY|PUBKEY|AUTHKEYS|PERMS|OWNER|ERROR)" | head -10
+fi
+
+# ── Test: SSH keypair idempotent (skip if exists) ────────────────────────
+
+OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
+    export SUDO_USER=testuser
+    useradd -m testuser 2>/dev/null
+    # Create an existing key with known content
+    mkdir -p /home/testuser/.ssh
+    echo "EXISTING_KEY" > /home/testuser/.ssh/id_ed25519
+    chown -R testuser:testuser /home/testuser/.ssh
+    sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
+    sed -i "1i pause() { return; }" /tmp/setup-auto.sh
+    chmod +x /tmp/setup-auto.sh
+    timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    echo "---CHECKS---"
+    cat /home/testuser/.ssh/id_ed25519
+')
+
+if echo "$OUTPUT" | grep -q "EXISTING_KEY" && echo "$OUTPUT" | grep -q "already exists"; then
+    report "PASS" "SSH keypair not overwritten if already exists"
+else
+    report "FAIL" "SSH keypair not overwritten if already exists"
+    echo "$OUTPUT" | tail -5
+fi
+
 # ── Test: User creation ──────────────────────────────────────────────────
 
 OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '

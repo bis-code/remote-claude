@@ -33,9 +33,8 @@ SSH is also hardened: password authentication and root login are disabled.
 
 The setup script pauses at steps that need your input:
 
-1. **SSH key** — Generate a key on your local machine (`ssh-keygen -t ed25519`)
-2. **Copy key** — Send it to the server (`ssh-copy-id user@server`)
-3. **Tailscale auth** — Run `sudo tailscale up` and authenticate via the URL
+1. **Save SSH key** — The script generates a keypair and displays the private key. Copy it into Termius (Keychain > + > Key > paste)
+2. **Tailscale auth** — Run `sudo tailscale up` and authenticate via the URL
 4. **Save Tailscale IP** — The script displays it; you'll use it to connect
 5. **Claude login** — Launch `claude` and run `/login` to authenticate
 
