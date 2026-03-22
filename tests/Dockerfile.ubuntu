@@ -1,0 +1,19 @@
+FROM ubuntu:24.04
+
+# Minimal setup to simulate a fresh server
+RUN apt-get update -qq && \
+    apt-get install -y -qq sudo openssh-server curl gnupg ca-certificates && \
+    mkdir -p /run/sshd && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a default sshd_config for testing
+RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+
+COPY setup.sh /opt/remote-claude/setup.sh
+COPY teardown.sh /opt/remote-claude/teardown.sh
+COPY tests/ /opt/remote-claude/tests/
+
+RUN chmod +x /opt/remote-claude/setup.sh /opt/remote-claude/teardown.sh /opt/remote-claude/tests/*.sh
+
+WORKDIR /opt/remote-claude

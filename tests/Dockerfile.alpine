@@ -1,0 +1,10 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache bash sudo
+
+COPY setup.sh /opt/remote-claude/setup.sh
+COPY tests/ /opt/remote-claude/tests/
+
+RUN chmod +x /opt/remote-claude/setup.sh /opt/remote-claude/tests/*.sh
+
+WORKDIR /opt/remote-claude
