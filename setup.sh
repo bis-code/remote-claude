@@ -107,16 +107,16 @@ if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
     else
         echo "    User '$TARGET_USER' already exists."
     fi
-
-    # Enable passwordless sudo (secured by SSH key + Tailscale)
-    if [[ ! -f "/etc/sudoers.d/$TARGET_USER" ]]; then
-        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$TARGET_USER"
-        chmod 440 "/etc/sudoers.d/$TARGET_USER"
-        echo "    Passwordless sudo enabled for '$TARGET_USER'."
-        log "Passwordless sudo configured for $TARGET_USER"
-    fi
 else
     echo "    Using user: $TARGET_USER"
+fi
+
+# Enable passwordless sudo (secured by SSH key + Tailscale)
+if [[ ! -f "/etc/sudoers.d/$TARGET_USER" ]]; then
+    echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$TARGET_USER"
+    chmod 440 "/etc/sudoers.d/$TARGET_USER"
+    echo "    Passwordless sudo enabled for '$TARGET_USER'."
+    log "Passwordless sudo configured for $TARGET_USER"
 fi
 
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
@@ -186,7 +186,65 @@ printf "    %sClear your terminal scrollback after copying for security.%s\n" "$
 
 pause
 
-# ── Step 5: Harden SSH ────────────────────────────────────────────────────
+# ── Step 5: Install Tailscale ─────────────────────────────────────────────
+
+auto_step "Installing Tailscale..."
+
+if command -v tailscale &>/dev/null; then
+    echo "    Tailscale already installed: $(tailscale version | head -1)"
+else
+    curl -fsSL https://tailscale.com/install.sh | sh >> "$LOGFILE" 2>&1 || fail "Tailscale installation failed."
+    echo "    Tailscale installed."
+fi
+
+# ── Step 6: Authenticate Tailscale (manual) ───────────────────────────────
+
+manual_step "Authenticate Tailscale."
+echo ""
+echo "    Run this command:"
+printf "    %ssudo tailscale up%s\n" "$BOLD" "$NC"
+echo ""
+echo "    A URL will appear — open it in your browser and sign in"
+echo "    to your Tailscale account to authorize this server."
+
+pause
+
+# ── Step 7: Display Tailscale IP (manual) ─────────────────────────────────
+
+manual_step "Save your Tailscale IP and set up your client device."
+echo ""
+
+TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
+printf "    Your Tailscale IP: %s%s%s%s\n" "$BOLD" "$GREEN" "$TS_IP" "$NC"
+echo ""
+echo "    Save this IP — you'll use it to connect."
+echo ""
+echo "    Now install Tailscale on your phone:"
+echo "      iOS:     https://apps.apple.com/app/tailscale/id1470499037"
+echo "      Android: https://play.google.com/store/apps/details?id=com.tailscale.ipn"
+echo ""
+echo "    Sign in with the same Tailscale account. Both devices will"
+echo "    be on the same private network — no port forwarding needed."
+
+pause
+
+# ── Step 8: Verify SSH connection (manual) ────────────────────────────────
+
+manual_step "TEST your connection before we lock down SSH."
+echo ""
+printf "    %sIMPORTANT:%s Open Termius on your phone and connect NOW:\n" "$RED" "$NC"
+echo ""
+printf "    Host: %s%s%s\n" "$BOLD" "$TS_IP" "$NC"
+printf "    User: %s%s%s\n" "$BOLD" "$TARGET_USER" "$NC"
+echo "    Key:  The private key you saved in step 4"
+echo ""
+printf "    %sIf you can connect, press Enter to continue.%s\n" "$BOLD" "$NC"
+printf "    %sIf you CANNOT connect, press Ctrl+C to abort.%s\n" "$RED" "$NC"
+echo "    (Your server will remain accessible — nothing has been locked down yet.)"
+
+pause
+
+# ── Step 9: Harden SSH ────────────────────────────────────────────────────
 
 auto_step "Hardening SSH configuration..."
 
@@ -211,49 +269,7 @@ else
     error "sshd_config not found — skipping SSH hardening."
 fi
 
-# ── Step 6: Install Tailscale ─────────────────────────────────────────────
-
-auto_step "Installing Tailscale..."
-
-if command -v tailscale &>/dev/null; then
-    echo "    Tailscale already installed: $(tailscale version | head -1)"
-else
-    curl -fsSL https://tailscale.com/install.sh | sh >> "$LOGFILE" 2>&1 || fail "Tailscale installation failed."
-    echo "    Tailscale installed."
-fi
-
-# ── Step 7: Authenticate Tailscale (manual) ───────────────────────────────
-
-manual_step "Authenticate Tailscale."
-echo ""
-echo "    Run this command:"
-printf "    %ssudo tailscale up%s\n" "$BOLD" "$NC"
-echo ""
-echo "    A URL will appear — open it in your browser and sign in"
-echo "    to your Tailscale account to authorize this server."
-
-pause
-
-# ── Step 8: Display Tailscale IP (manual) ─────────────────────────────────
-
-manual_step "Save your Tailscale IP and set up your client device."
-echo ""
-
-TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
-printf "    Your Tailscale IP: %s%s%s%s\n" "$BOLD" "$GREEN" "$TS_IP" "$NC"
-echo ""
-echo "    Save this IP — you'll use it to connect."
-echo ""
-echo "    Now install Tailscale on your phone:"
-echo "      iOS:     https://apps.apple.com/app/tailscale/id1470499037"
-echo "      Android: https://play.google.com/store/apps/details?id=com.tailscale.ipn"
-echo ""
-echo "    Sign in with the same Tailscale account. Both devices will"
-echo "    be on the same private network — no port forwarding needed."
-
-pause
-
-# ── Step 9: Install Node.js 22 ───────────────────────────────────────────
+# ── Step 10: Install Node.js 22 ──────────────────────────────────────────
 
 auto_step "Installing Node.js 22..."
 
@@ -276,7 +292,7 @@ else
     echo "    Node.js installed: $(node --version)"
 fi
 
-# ── Step 10: Install Claude Code ──────────────────────────────────────────
+# ── Step 11: Install Claude Code ─────────────────────────────────────────
 
 auto_step "Installing Claude Code..."
 
@@ -287,7 +303,7 @@ else
     echo "    Claude Code installed."
 fi
 
-# ── Step 11: Authenticate Claude Code (manual) ───────────────────────────
+# ── Step 12: Authenticate Claude Code (manual) ──────────────────────────
 
 manual_step "Authenticate Claude Code."
 echo ""
@@ -301,7 +317,7 @@ echo "    your Anthropic account, and paste the code back here."
 
 pause
 
-# ── Step 12: Summary ─────────────────────────────────────────────────────
+# ── Step 13: Summary ─────────────────────────────────────────────────────
 
 echo ""
 printf "%s%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n" "$GREEN" "$BOLD" "$NC"

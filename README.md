@@ -37,8 +37,9 @@ The setup script pauses at a few steps that need your input:
 2. **SSH passphrase** — Optionally set a passphrase for the generated SSH key (or press Enter for none)
 3. **Save SSH key** — The script generates a keypair and displays both keys. Copy the private key into Termius
 4. **Tailscale auth** — Run `sudo tailscale up` and authenticate via the URL
-5. **Save Tailscale IP** — The script displays it; you'll use it to connect
-6. **Claude login** — Launch `claude` and run `/login` to authenticate
+5. **Save Tailscale IP** — The script displays it; install Tailscale on your phone too
+6. **Test connection** — Connect from your phone via Termius before SSH gets hardened. If it works, press Enter. If not, Ctrl+C safely aborts
+7. **Claude login** — Launch `claude` and run `/login` to authenticate
 
 Everything else is automatic.
 

@@ -71,9 +71,13 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     useradd -m testuser 2>/dev/null
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
+    # Stub out curl to skip Tailscale/Node downloads, fake tailscale command
+    sed -i "s|curl -fsSL.*tailscale.com.*|echo \"tailscale stubbed\" #|" /tmp/setup-auto.sh
+    sed -i "s|curl -fsSL.*nodesource.*|echo \"nodesource stubbed\" #|" /tmp/setup-auto.sh
+    echo "#!/bin/bash" > /usr/local/bin/tailscale && echo "echo 100.64.0.1" >> /usr/local/bin/tailscale && chmod +x /usr/local/bin/tailscale
+    echo "#!/bin/bash" > /usr/local/bin/claude && chmod +x /usr/local/bin/claude
     chmod +x /tmp/setup-auto.sh
-    # Feed empty passphrase (Enter) for ssh-keygen prompt
-    printf "\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    printf "\n" | timeout 60 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     [ -f /etc/ssh/sshd_config.backup.remote-claude ] && echo "BACKUP:exists" || echo "BACKUP:missing"
     grep "^PasswordAuthentication no" /etc/ssh/sshd_config && echo "PASSAUTH:hardened" || echo "PASSAUTH:not-hardened"
@@ -174,8 +178,12 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     echo "ORIGINAL_BACKUP" > /etc/ssh/sshd_config.backup.remote-claude
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
+    sed -i "s|curl -fsSL.*tailscale.com.*|echo \"stubbed\" #|" /tmp/setup-auto.sh
+    sed -i "s|curl -fsSL.*nodesource.*|echo \"stubbed\" #|" /tmp/setup-auto.sh
+    echo "#!/bin/bash" > /usr/local/bin/tailscale && echo "echo 100.64.0.1" >> /usr/local/bin/tailscale && chmod +x /usr/local/bin/tailscale
+    echo "#!/bin/bash" > /usr/local/bin/claude && chmod +x /usr/local/bin/claude
     chmod +x /tmp/setup-auto.sh
-    printf "\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    printf "\n" | timeout 60 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     cat /etc/ssh/sshd_config.backup.remote-claude
 ')
