@@ -9,32 +9,29 @@ SSH_BACKUP="/etc/ssh/sshd_config.backup.remote-claude"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BOLD='\033[1m'
-NC='\033[0m' # No Color
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+RED=$'\033[0;31m'
+BOLD=$'\033[1m'
+NC=$'\033[0m'
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOGFILE"; }
 
 auto_step() {
-    local msg="$1"
-    echo -e "${GREEN}[AUTO]${NC} ${BOLD}${msg}${NC}"
-    log "AUTO: $msg"
+    printf "%s[AUTO]%s %s%s%s\n" "$GREEN" "$NC" "$BOLD" "$1" "$NC"
+    log "AUTO: $1"
 }
 
 manual_step() {
-    local msg="$1"
-    echo -e "${YELLOW}[MANUAL]${NC} ${BOLD}${msg}${NC}"
-    log "MANUAL: $msg"
+    printf "%s[MANUAL]%s %s%s%s\n" "$YELLOW" "$NC" "$BOLD" "$1" "$NC"
+    log "MANUAL: $1"
 }
 
 error() {
-    local msg="$1"
-    echo -e "${RED}[ERROR]${NC} ${msg}" >&2
-    log "ERROR: $msg"
+    printf "%s[ERROR]%s %s\n" "$RED" "$NC" "$1" >&2
+    log "ERROR: $1"
 }
 
 pause() {
@@ -78,11 +75,24 @@ TARGET_USER="${SUDO_USER:-}"
 
 if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
     echo "    You're running as root without a non-root user."
-    read -rp "    Enter username to create (or existing to use): " TARGET_USER
+    echo "    SSH hardening will disable root login, so a non-root user is required."
+    echo ""
 
-    if [[ -z "$TARGET_USER" ]]; then
-        fail "Username cannot be empty."
-    fi
+    while true; do
+        read -rp "    Enter username to create (or existing non-root user): " TARGET_USER
+
+        if [[ -z "$TARGET_USER" ]]; then
+            error "Username cannot be empty. Try again."
+            continue
+        fi
+
+        if [[ "$TARGET_USER" == "root" ]]; then
+            error "Cannot use 'root' — SSH hardening disables root login. Choose another username."
+            continue
+        fi
+
+        break
+    done
 
     if ! id "$TARGET_USER" &>/dev/null; then
         auto_step "Creating user '$TARGET_USER'..."
@@ -110,7 +120,22 @@ if [[ -f "$SSH_KEY" ]]; then
     echo "    SSH key already exists at $SSH_KEY — skipping."
 else
     mkdir -p "$SSH_DIR"
-    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -q
+
+    echo ""
+    echo "    Set a passphrase to protect the key (recommended)."
+    echo "    Leave empty for no passphrase."
+    echo ""
+    read -rsp "    Passphrase (or Enter for none): " SSH_PASSPHRASE
+    echo ""
+    if [[ -n "$SSH_PASSPHRASE" ]]; then
+        read -rsp "    Confirm passphrase: " SSH_PASSPHRASE_CONFIRM
+        echo ""
+        if [[ "$SSH_PASSPHRASE" != "$SSH_PASSPHRASE_CONFIRM" ]]; then
+            fail "Passphrases do not match."
+        fi
+    fi
+
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "$SSH_PASSPHRASE" -q
     chown -R "${TARGET_USER}:${TARGET_USER}" "$SSH_DIR"
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_KEY"
@@ -128,18 +153,21 @@ fi
 
 log "SSH keypair generated for $TARGET_USER"
 
-# ── Step 4: Save private key to your device (manual) ─────────────────────
+# ── Step 4: Save keys to your device (manual) ────────────────────────────
 
-manual_step "Save this private key to your phone (Termius)."
+manual_step "Save these keys to your phone (Termius)."
 echo ""
-echo "    Copy everything between the lines into Termius:"
-echo -e "    ${YELLOW}────────────────────────────────────────${NC}"
+printf "    %sPrivate key%s (copy into Termius: Keychain > + > Key > paste):\n" "$BOLD" "$NC"
+printf "    %s────────────────────────────────────────%s\n" "$YELLOW" "$NC"
 cat "$SSH_KEY"
-echo -e "    ${YELLOW}────────────────────────────────────────${NC}"
+printf "    %s────────────────────────────────────────%s\n" "$YELLOW" "$NC"
 echo ""
-echo "    In Termius: Keychain > + > Key > paste the key above."
+printf "    %sPublic key%s (for reference):\n" "$BOLD" "$NC"
+printf "    %s────────────────────────────────────────%s\n" "$YELLOW" "$NC"
+cat "${SSH_KEY}.pub"
+printf "    %s────────────────────────────────────────%s\n" "$YELLOW" "$NC"
 echo ""
-echo "    ${BOLD}After saving, this key will be used to connect.${NC}"
+printf "    %sAfter saving the private key, this will be used to connect.%s\n" "$BOLD" "$NC"
 
 pause
 
@@ -184,7 +212,7 @@ fi
 manual_step "Authenticate Tailscale."
 echo ""
 echo "    Run this command:"
-echo -e "    ${BOLD}sudo tailscale up${NC}"
+printf "    %ssudo tailscale up%s\n" "$BOLD" "$NC"
 echo ""
 echo "    A URL will appear — open it in your browser and sign in"
 echo "    to your Tailscale account to authorize this server."
@@ -197,7 +225,7 @@ manual_step "Save your Tailscale IP and set up your client device."
 echo ""
 
 TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
-echo -e "    Your Tailscale IP: ${BOLD}${GREEN}${TS_IP}${NC}"
+printf "    Your Tailscale IP: %s%s%s%s\n" "$BOLD" "$GREEN" "$TS_IP" "$NC"
 echo ""
 echo "    Save this IP — you'll use it to connect."
 echo ""
@@ -249,10 +277,10 @@ fi
 manual_step "Authenticate Claude Code."
 echo ""
 echo "    Switch to your user and launch Claude:"
-echo -e "    ${BOLD}su - ${TARGET_USER}${NC}"
-echo -e "    ${BOLD}claude${NC}"
+printf "    %ssu - %s%s\n" "$BOLD" "$TARGET_USER" "$NC"
+printf "    %sclaude%s\n" "$BOLD" "$NC"
 echo ""
-echo "    Inside Claude, type ${BOLD}/login${NC} and press Enter."
+printf "    Inside Claude, type %s/login%s and press Enter.\n" "$BOLD" "$NC"
 echo "    A URL will appear — open it in your browser, sign in to"
 echo "    your Anthropic account, and paste the code back here."
 
@@ -261,17 +289,17 @@ pause
 # ── Step 12: Summary ─────────────────────────────────────────────────────
 
 echo ""
-echo -e "${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}${BOLD}  Setup complete!${NC}"
-echo -e "${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+printf "%s%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n" "$GREEN" "$BOLD" "$NC"
+printf "%s%s  Setup complete!%s\n" "$GREEN" "$BOLD" "$NC"
+printf "%s%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n" "$GREEN" "$BOLD" "$NC"
 echo ""
-echo "  Connect from your phone/laptop (with Tailscale running):"
+echo "  Connect from your phone (with Tailscale running):"
 echo ""
 echo "    1. Open Termius (or any SSH client)"
 echo "    2. Connect to:"
-echo -e "       ${BOLD}ssh ${TARGET_USER}@${TS_IP}${NC}"
+printf "       %sssh %s@%s%s\n" "$BOLD" "$TARGET_USER" "$TS_IP" "$NC"
 echo "    3. Run:"
-echo -e "       ${BOLD}claude${NC}"
+printf "       %sclaude%s\n" "$BOLD" "$NC"
 echo ""
 echo "  Log file: $LOGFILE"
 echo ""

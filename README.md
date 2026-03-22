@@ -31,18 +31,20 @@ SSH is also hardened: password authentication and root login are disabled.
 
 ## Manual Steps
 
-The setup script pauses at steps that need your input:
+The setup script pauses at a few steps that need your input:
 
-1. **Save SSH key** — The script generates a keypair and displays the private key. Copy it into Termius (Keychain > + > Key > paste)
-2. **Tailscale auth** — Run `sudo tailscale up` and authenticate via the URL
-4. **Save Tailscale IP** — The script displays it; you'll use it to connect
-5. **Claude login** — Launch `claude` and run `/login` to authenticate
+1. **Create user** — Enter a non-root username (the script creates it with sudo access)
+2. **SSH passphrase** — Optionally set a passphrase for the generated SSH key (or press Enter for none)
+3. **Save SSH key** — The script generates a keypair and displays both keys. Copy the private key into Termius
+4. **Tailscale auth** — Run `sudo tailscale up` and authenticate via the URL
+5. **Save Tailscale IP** — The script displays it; you'll use it to connect
+6. **Claude login** — Launch `claude` and run `/login` to authenticate
 
 Everything else is automatic.
 
-## Connecting From Your Device
+## Connecting From Your Phone
 
-### 1. Install Tailscale on your phone
+### 1. Install Tailscale
 
 - **iOS**: [App Store](https://apps.apple.com/app/tailscale/id1470499037)
 - **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.tailscale.ipn)
@@ -54,15 +56,21 @@ Open Tailscale, sign in with the same account you used on the server. Your phone
 - **iOS**: [App Store](https://apps.apple.com/app/termius-terminal-ssh-client/id549039908)
 - **Android**: [Google Play](https://play.google.com/store/apps/details?id=com.server.auditor.ssh.client)
 
-### 3. Connect
+### 3. Import SSH Key
 
-In Termius, create a new host:
+In Termius, go to **Keychain > + > Key** and paste the private key that the setup script displayed.
+
+If you set a passphrase during setup, enter it when prompted.
+
+### 4. Connect
+
+Create a new host in Termius:
 
 | Field | Value |
 |-------|-------|
 | **Hostname** | Your Tailscale IP (e.g. `100.x.y.z`) |
 | **Username** | The user you created during setup |
-| **Authentication** | SSH key (import the key you generated in setup) |
+| **Key** | The SSH key you just imported |
 
 Connect, then run:
 

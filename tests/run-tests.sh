@@ -67,14 +67,13 @@ fi
 # ── Test: SSH config backup + hardening ──────────────────────────────────
 
 OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
-    # Simulate: provide username via SUDO_USER, skip manual steps by replacing read/pause
     export SUDO_USER=testuser
     useradd -m testuser 2>/dev/null
-    # Override pause() to auto-skip manual steps
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
     chmod +x /tmp/setup-auto.sh
-    timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    # Feed empty passphrase (Enter) for ssh-keygen prompt
+    printf "\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     [ -f /etc/ssh/sshd_config.backup.remote-claude ] && echo "BACKUP:exists" || echo "BACKUP:missing"
     grep "^PasswordAuthentication no" /etc/ssh/sshd_config && echo "PASSAUTH:hardened" || echo "PASSAUTH:not-hardened"
@@ -98,7 +97,7 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
     chmod +x /tmp/setup-auto.sh
-    timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    printf "\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     [ -f /home/testuser/.ssh/id_ed25519 ] && echo "PRIVKEY:exists" || echo "PRIVKEY:missing"
     [ -f /home/testuser/.ssh/id_ed25519.pub ] && echo "PUBKEY:exists" || echo "PUBKEY:missing"
@@ -153,7 +152,7 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
     chmod +x /tmp/setup-auto.sh
-    printf "claudeuser\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    printf "claudeuser\n\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     id claudeuser 2>/dev/null && echo "USER:created" || echo "USER:missing"
     groups claudeuser 2>/dev/null | grep -q sudo && echo "SUDO:yes" || echo "SUDO:no"
@@ -176,7 +175,7 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     sed "s/^pause()/pause_disabled()/" /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i "1i pause() { return; }" /tmp/setup-auto.sh
     chmod +x /tmp/setup-auto.sh
-    timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
+    printf "\n" | timeout 30 bash /tmp/setup-auto.sh 2>&1 || true
     echo "---CHECKS---"
     cat /etc/ssh/sshd_config.backup.remote-claude
 ')
@@ -250,18 +249,35 @@ else
     echo "$OUTPUT" | tail -5
 fi
 
-# ── Fuzz: Empty username ─────────────────────────────────────────────────
+# ── Fuzz: Empty username shows error and re-prompts ──────────────────────
 
 OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
     export SUDO_USER=""
-    echo "" | timeout 10 /opt/remote-claude/setup.sh 2>&1
-    echo "EXIT:$?"
+    # Feed empty then valid username then empty passphrase
+    printf "\nvaliduser\n\n" | timeout 15 /opt/remote-claude/setup.sh 2>&1 || true
+    echo "---CHECKS---"
+    echo "$?"
 ')
 
-if echo "$OUTPUT" | grep -q "cannot be empty" && echo "$OUTPUT" | grep -q "EXIT:1"; then
-    report "PASS" "fuzz: empty username rejected"
+if echo "$OUTPUT" | grep -q "cannot be empty"; then
+    report "PASS" "fuzz: empty username shows error and re-prompts"
 else
-    report "FAIL" "fuzz: empty username rejected"
+    report "FAIL" "fuzz: empty username shows error and re-prompts"
+    echo "$OUTPUT" | tail -5
+fi
+
+# ── Fuzz: Root username rejected with explanation ────────────────────────
+
+OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
+    export SUDO_USER=""
+    # Feed root then valid username then empty passphrase
+    printf "root\nvaliduser\n\n" | timeout 15 /opt/remote-claude/setup.sh 2>&1 || true
+')
+
+if echo "$OUTPUT" | grep -q "Cannot use.*root" && echo "$OUTPUT" | grep -q "disables root login"; then
+    report "PASS" "fuzz: root username rejected with explanation"
+else
+    report "FAIL" "fuzz: root username rejected with explanation"
     echo "$OUTPUT" | tail -5
 fi
 
@@ -412,10 +428,10 @@ OUTPUT=$(docker run --rm rc-test-ubuntu bash -c "
     sed 's/^pause()/pause_disabled()/' /opt/remote-claude/setup.sh > /tmp/setup-auto.sh
     sed -i '1i pause() { return; }' /tmp/setup-auto.sh
     chmod +x /tmp/setup-auto.sh
-    # Run setup twice
-    timeout 120 bash /tmp/setup-auto.sh 2>&1 || true
+    # Run setup twice (feed empty passphrase each time)
+    printf '\n' | timeout 120 bash /tmp/setup-auto.sh 2>&1 || true
     echo '=== SECOND RUN ==='
-    timeout 120 bash /tmp/setup-auto.sh 2>&1 || true
+    printf '\n' | timeout 120 bash /tmp/setup-auto.sh 2>&1 || true
     echo '---CHECKS---'
     command -v node &>/dev/null && echo 'NODE:installed' || echo 'NODE:missing'
     command -v claude &>/dev/null && echo 'CLAUDE:installed' || echo 'CLAUDE:missing'
