@@ -158,7 +158,7 @@ else
 fi
 
 # Add public key to authorized_keys
-if ! grep -qf "${SSH_KEY}.pub" "${SSH_DIR}/authorized_keys" 2>/dev/null; then
+if ! grep -qFf "${SSH_KEY}.pub" "${SSH_DIR}/authorized_keys" 2>/dev/null; then
     cat "${SSH_KEY}.pub" >> "${SSH_DIR}/authorized_keys"
     chown "${TARGET_USER}:${TARGET_USER}" "${SSH_DIR}/authorized_keys"
     chmod 600 "${SSH_DIR}/authorized_keys"

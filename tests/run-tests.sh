@@ -467,6 +467,17 @@ else
     echo "$OUTPUT" | grep -E "(already|NODE|CLAUDE|BACKUP|ERROR)" | tail -10
 fi
 
+# ── Test: setup.sh uses fixed-string grep for authorized_keys ──────────
+
+OUTPUT=$(grep -n 'grep.*authorized_keys' "$PROJECT_DIR/setup.sh")
+
+if echo "$OUTPUT" | grep -q 'grep -qFf\|grep.*-F.*-f\|grep.*--fixed-strings'; then
+    report "PASS" "authorized_keys check uses fixed-string grep"
+else
+    report "FAIL" "authorized_keys check uses fixed-string grep (uses regex grep instead)"
+    echo "    Found: $OUTPUT"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────
 
 echo ""
