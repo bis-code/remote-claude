@@ -17,7 +17,6 @@ NC='\033[0m'
 
 PASS=0
 FAIL=0
-TESTS=()
 
 report() {
     local status="$1" name="$2"
