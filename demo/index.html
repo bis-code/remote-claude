@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>remote-claude — Setup Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; padding: 20px; }
+  h1 { color: #58a6ff; font-size: 1.4em; margin-bottom: 8px; }
+  .subtitle { color: #8b949e; margin-bottom: 30px; font-size: 0.9em; }
+  .subtitle a { color: #58a6ff; text-decoration: none; }
+  .flow { display: flex; flex-direction: column; gap: 12px; max-width: 800px; margin: 0 auto; }
+  .step { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; position: relative; overflow: hidden; }
+  .step.auto { border-left: 3px solid #3fb950; }
+  .step.manual { border-left: 3px solid #d29922; }
+  .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .badge { font-size: 0.7em; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge.auto { background: #0d2818; color: #3fb950; }
+  .badge.manual { background: #2d1b00; color: #d29922; }
+  .step-title { font-weight: 600; color: #e6edf3; }
+  .step-num { color: #484f58; font-size: 0.8em; }
+  .step-detail { color: #8b949e; font-size: 0.85em; line-height: 1.5; }
+  .step-detail code { background: #21262d; padding: 2px 6px; border-radius: 4px; color: #79c0ff; font-size: 0.95em; }
+  .arrow { text-align: center; color: #30363d; font-size: 1.2em; }
+  .terminal { background: #010409; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 800px; }
+  .terminal-bar { display: flex; gap: 6px; margin-bottom: 14px; }
+  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .terminal-dot.r { background: #ff5f57; }
+  .terminal-dot.y { background: #febc2e; }
+  .terminal-dot.g { background: #28c840; }
+  .terminal-line { line-height: 1.6; font-size: 0.82em; white-space: pre; }
+  .t-green { color: #3fb950; }
+  .t-yellow { color: #d29922; }
+  .t-bold { color: #e6edf3; font-weight: 700; }
+  .t-dim { color: #484f58; }
+  .t-cyan { color: #79c0ff; }
+  .section { margin: 30px auto; max-width: 800px; }
+  .section h2 { color: #58a6ff; font-size: 1.1em; margin-bottom: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+  .card-icon { font-size: 2em; margin-bottom: 8px; }
+  .card-name { color: #e6edf3; font-weight: 600; margin-bottom: 4px; }
+  .card-desc { color: #8b949e; font-size: 0.8em; }
+  .summary-box { background: #0d2818; border: 1px solid #238636; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 800px; text-align: center; }
+  .summary-box h2 { color: #3fb950; margin-bottom: 10px; }
+  .summary-box p { color: #8b949e; }
+  .summary-box code { background: #21262d; padding: 4px 10px; border-radius: 4px; color: #79c0ff; }
+  .phone-mockup { max-width: 320px; margin: 20px auto; background: #161b22; border: 1px solid #30363d; border-radius: 24px; padding: 40px 16px 20px; text-align: center; }
+  .phone-mockup .notch { width: 80px; height: 6px; background: #30363d; border-radius: 3px; margin: -28px auto 20px; }
+  .phone-mockup .app { background: #010409; border-radius: 12px; padding: 16px; text-align: left; font-size: 0.75em; line-height: 1.6; }
+  .phone-mockup .app-name { text-align: center; color: #8b949e; font-size: 0.9em; margin-bottom: 8px; }
+  footer { text-align: center; color: #484f58; font-size: 0.8em; margin-top: 40px; padding: 20px; }
+  footer a { color: #58a6ff; text-decoration: none; }
+  .animate { opacity: 0; transform: translateY(10px); animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+  .step:nth-child(1) { animation-delay: 0.1s; }
+  .step:nth-child(2) { animation-delay: 0.2s; }
+  .step:nth-child(3) { animation-delay: 0.3s; }
+  .step:nth-child(4) { animation-delay: 0.4s; }
+  .step:nth-child(5) { animation-delay: 0.5s; }
+  .step:nth-child(6) { animation-delay: 0.6s; }
+  .step:nth-child(7) { animation-delay: 0.7s; }
+  .step:nth-child(8) { animation-delay: 0.8s; }
+  .step:nth-child(9) { animation-delay: 0.9s; }
+  .step:nth-child(10) { animation-delay: 1.0s; }
+  .step:nth-child(11) { animation-delay: 1.1s; }
+  .step:nth-child(12) { animation-delay: 1.2s; }
+  .step:nth-child(13) { animation-delay: 1.3s; }
+</style>
+</head>
+<body>
+
+<div style="max-width: 800px; margin: 0 auto;">
+  <h1>remote-claude</h1>
+  <p class="subtitle">One script to set up Claude Code on any fresh server. <a href="https://github.com/bis-code/remote-claude">github.com/bis-code/remote-claude</a></p>
+</div>
+
+<div class="section">
+  <h2>What Gets Installed</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">&#x1f310;</div>
+      <div class="card-name">Tailscale</div>
+      <div class="card-desc">Private network — connect from anywhere without exposing ports</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#x26a1;</div>
+      <div class="card-name">Node.js 22</div>
+      <div class="card-desc">Runtime required by Claude Code</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#x1f916;</div>
+      <div class="card-name">Claude Code</div>
+      <div class="card-desc">Anthropic's CLI for Claude — code from anywhere</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Setup Flow (13 Steps)</h2>
+  <div class="flow">
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#1</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Detect OS</span>
+      </div>
+      <div class="step-detail">Checks for Ubuntu/Debian, verifies root permissions</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#2</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Create Non-Root User</span>
+      </div>
+      <div class="step-detail">Prompts for username, creates user with passwordless <code>sudo</code>. Rejects <code>root</code> and invalid names.</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#3</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Generate SSH Keypair</span>
+      </div>
+      <div class="step-detail">Generates <code>ed25519</code> key with optional passphrase. Adds public key to <code>authorized_keys</code>.</div>
+    </div>
+
+    <div class="step manual animate">
+      <div class="step-header">
+        <span class="step-num">#4</span>
+        <span class="badge manual">manual</span>
+        <span class="step-title">Save Keys to Phone</span>
+      </div>
+      <div class="step-detail">Displays private + public key. Copy private key into <strong>Termius</strong> (Keychain &gt; + &gt; Key &gt; paste).</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#5</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Install Tailscale</span>
+      </div>
+      <div class="step-detail">Downloads and installs via official script. Skips if already present.</div>
+    </div>
+
+    <div class="step manual animate">
+      <div class="step-header">
+        <span class="step-num">#6</span>
+        <span class="badge manual">manual</span>
+        <span class="step-title">Authenticate Tailscale</span>
+      </div>
+      <div class="step-detail">Run <code>sudo tailscale up</code> — opens a URL to sign in to your Tailscale account.</div>
+    </div>
+
+    <div class="step manual animate">
+      <div class="step-header">
+        <span class="step-num">#7</span>
+        <span class="badge manual">manual</span>
+        <span class="step-title">Save Tailscale IP + Setup Phone</span>
+      </div>
+      <div class="step-detail">Displays your Tailscale IP. Install Tailscale on phone, sign in with same account.</div>
+    </div>
+
+    <div class="step manual animate">
+      <div class="step-header">
+        <span class="step-num">#8</span>
+        <span class="badge manual">manual</span>
+        <span class="step-title">Verify SSH Connection</span>
+      </div>
+      <div class="step-detail">Test your connection from Termius before SSH gets hardened. If it works, continue. If not, Ctrl+C to abort safely.</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#9</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Harden SSH</span>
+      </div>
+      <div class="step-detail">Backs up config, disables password auth + root login, restarts sshd. Idempotent.</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#10</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Install Node.js 22</span>
+      </div>
+      <div class="step-detail">Adds nodesource repo, installs Node.js 22 LTS. Skips if already present.</div>
+    </div>
+
+    <div class="step auto animate">
+      <div class="step-header">
+        <span class="step-num">#11</span>
+        <span class="badge auto">auto</span>
+        <span class="step-title">Install Claude Code</span>
+      </div>
+      <div class="step-detail"><code>npm install -g @anthropic-ai/claude-code</code> — skips if already present.</div>
+    </div>
+
+    <div class="step manual animate">
+      <div class="step-header">
+        <span class="step-num">#12</span>
+        <span class="badge manual">manual</span>
+        <span class="step-title">Authenticate Claude</span>
+      </div>
+      <div class="step-detail">Run <code>claude</code>, type <code>/login</code>, open URL in browser, paste code back.</div>
+    </div>
+
+    <div class="step auto animate" style="border-left-color: #58a6ff;">
+      <div class="step-header">
+        <span class="step-num">#13</span>
+        <span class="badge auto" style="background: #0c2d6b; color: #58a6ff;">done</span>
+        <span class="step-title">Setup Complete!</span>
+      </div>
+      <div class="step-detail">Shows connection command: <code>ssh user@tailscale-ip</code> then <code>claude</code></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="terminal">
+  <div class="terminal-bar">
+    <div class="terminal-dot r"></div>
+    <div class="terminal-dot y"></div>
+    <div class="terminal-dot g"></div>
+  </div>
+  <div class="terminal-line"><span class="t-dim">$</span> <span class="t-bold">sudo ./setup.sh</span>
+<span class="t-green">[AUTO]</span> <span class="t-bold">Detecting OS and checking permissions...</span>
+    OS: Ubuntu 24.04.4 LTS
+<span class="t-green">[AUTO]</span> <span class="t-bold">Checking for non-root user...</span>
+    Enter username to create: <span class="t-cyan">claude</span>
+    User 'claude' created and added to sudo group.
+    Passwordless sudo enabled for 'claude'.
+<span class="t-green">[AUTO]</span> <span class="t-bold">Generating SSH keypair for claude...</span>
+    Passphrase (or Enter for none):
+    SSH keypair generated.
+    Public key added to authorized_keys.
+<span class="t-yellow">[MANUAL]</span> <span class="t-bold">Save these keys to your phone (Termius).</span>
+    <span class="t-dim">────────────────────────────────────────</span>
+    <span class="t-dim">-----BEGIN OPENSSH PRIVATE KEY-----</span>
+    <span class="t-dim">b3BlbnNzaC1rZXktdjEAAAA... (your key here)</span>
+    <span class="t-dim">-----END OPENSSH PRIVATE KEY-----</span>
+    <span class="t-dim">────────────────────────────────────────</span>
+
+    Press Enter when ready to continue...
+
+<span class="t-green">[AUTO]</span> <span class="t-bold">Installing Tailscale...</span>
+    Tailscale installed.
+<span class="t-yellow">[MANUAL]</span> <span class="t-bold">Authenticate Tailscale.</span>
+    Run: <span class="t-bold">sudo tailscale up</span>
+
+    Press Enter when ready to continue...
+
+<span class="t-yellow">[MANUAL]</span> <span class="t-bold">Save your Tailscale IP and set up your client device.</span>
+    Your Tailscale IP: <span class="t-cyan">100.64.0.2</span>
+
+    Press Enter when ready to continue...
+
+<span class="t-yellow">[MANUAL]</span> <span class="t-bold">TEST your connection before we lock down SSH.</span>
+    Host: <span class="t-bold">100.64.0.2</span>  User: <span class="t-bold">claude</span>
+
+    Press Enter when connected (or Ctrl+C to abort)...
+
+<span class="t-green">[AUTO]</span> <span class="t-bold">Hardening SSH configuration...</span>
+    SSH hardened: password auth disabled, root login disabled.
+<span class="t-green">[AUTO]</span> <span class="t-bold">Installing Node.js 22...</span>
+    Node.js installed: v22.14.0
+<span class="t-green">[AUTO]</span> <span class="t-bold">Installing Claude Code...</span>
+    Claude Code installed.
+
+<span class="t-green"><span class="t-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span></span>
+<span class="t-green"><span class="t-bold">  Setup complete!</span></span>
+<span class="t-green"><span class="t-bold">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span></span>
+
+  Connect from your phone:
+    1. Open Termius
+    2. Connect to: <span class="t-bold">ssh claude@100.64.0.2</span>
+    3. Run: <span class="t-bold">claude</span></div>
+</div>
+
+<div style="display: flex; gap: 20px; max-width: 800px; margin: 30px auto; flex-wrap: wrap; justify-content: center;">
+  <div class="phone-mockup">
+    <div class="notch"></div>
+    <div class="app-name">Termius</div>
+    <div class="app">
+<span class="t-dim">Connected to 100.64.0.2</span>
+
+<span class="t-dim">claude@server:~$</span> <span class="t-bold">claude</span>
+
+<span class="t-cyan">╭─────────────────────────────╮</span>
+<span class="t-cyan">│</span>  <span class="t-bold">Claude Code</span>  v1.0.0       <span class="t-cyan">│</span>
+<span class="t-cyan">│</span>                             <span class="t-cyan">│</span>
+<span class="t-cyan">│</span>  <span class="t-dim">Ready. How can I help?</span>    <span class="t-cyan">│</span>
+<span class="t-cyan">╰─────────────────────────────╯</span>
+
+<span class="t-dim">&gt;</span> <span class="t-bold">_</span>
+    </div>
+  </div>
+</div>
+
+<div class="summary-box">
+  <h2>Quick Start</h2>
+  <p style="margin-bottom: 12px;">
+    <code>git clone https://github.com/bis-code/remote-claude.git && cd remote-claude && sudo ./setup.sh</code>
+  </p>
+  <p>21 tests passing. MIT license. Works on x86 and arm64.</p>
+</div>
+
+<footer>
+  <a href="https://github.com/bis-code/remote-claude">bis-code/remote-claude</a> &middot; MIT License
+</footer>
+
+</body>
+</html>
