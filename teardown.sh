@@ -94,7 +94,17 @@ else
     warn "No SSH backup found at $SSH_BACKUP — skipping."
 fi
 
-# ── Step 6: Optionally remove user ────────────────────────────────────────
+# ── Step 6: Remove passwordless sudo entries ─────────────────────────────
+
+for SUDOER_FILE in /etc/sudoers.d/*; do
+    [[ -f "$SUDOER_FILE" ]] || continue
+    if grep -q "ALL=(ALL) NOPASSWD:ALL" "$SUDOER_FILE" 2>/dev/null; then
+        info "Removing passwordless sudo config: $(basename "$SUDOER_FILE")"
+        rm -f "$SUDOER_FILE"
+    fi
+done
+
+# ── Step 7: Optionally remove user ────────────────────────────────────────
 
 echo ""
 read -rp "Remove a user account too? (y/n) " REMOVE_USER || true
@@ -115,7 +125,7 @@ if [[ "$REMOVE_USER" == "y" || "$REMOVE_USER" == "Y" ]]; then
     fi
 fi
 
-# ── Step 7: Done ──────────────────────────────────────────────────────────
+# ── Step 8: Done ──────────────────────────────────────────────────────────
 
 echo ""
 printf "%s%sClean. Server is back to fresh state.%s\n" "$GREEN" "$BOLD" "$NC"

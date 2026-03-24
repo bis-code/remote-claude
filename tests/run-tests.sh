@@ -498,6 +498,25 @@ else
     report "FAIL" "teardown.sh enables strict mode (set -euo pipefail)"
 fi
 
+# ── Test: Teardown cleans sudoers.d even without user removal ──────────
+
+OUTPUT=$(docker run --rm rc-test-ubuntu bash -c '
+    useradd -m testuser 2>/dev/null
+    echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser
+    chmod 440 /etc/sudoers.d/testuser
+    # Run teardown: y to confirm, n to skip user removal
+    printf "y\nn\n" | /opt/remote-claude/teardown.sh 2>&1
+    echo "---CHECKS---"
+    [ -f /etc/sudoers.d/testuser ] && echo "SUDOERS:remains" || echo "SUDOERS:cleaned"
+')
+
+if echo "$OUTPUT" | grep -q "SUDOERS:cleaned"; then
+    report "PASS" "teardown.sh cleans sudoers.d even without user removal"
+else
+    report "FAIL" "teardown.sh cleans sudoers.d even without user removal"
+    echo "$OUTPUT" | grep -E "(SUDOERS|ERROR)" | head -5
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────
 
 echo ""
