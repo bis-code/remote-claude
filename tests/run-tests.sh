@@ -478,6 +478,26 @@ else
     echo "    Found: $OUTPUT"
 fi
 
+# ── Test: setup.sh uses strict mode ────────────────────────────────────
+
+OUTPUT=$(head -10 "$PROJECT_DIR/setup.sh")
+
+if echo "$OUTPUT" | grep -q 'set -euo pipefail'; then
+    report "PASS" "setup.sh enables strict mode (set -euo pipefail)"
+else
+    report "FAIL" "setup.sh enables strict mode (set -euo pipefail)"
+fi
+
+# ── Test: teardown.sh uses strict mode ─────────────────────────────────
+
+OUTPUT=$(head -10 "$PROJECT_DIR/teardown.sh")
+
+if echo "$OUTPUT" | grep -q 'set -euo pipefail'; then
+    report "PASS" "teardown.sh enables strict mode (set -euo pipefail)"
+else
+    report "FAIL" "teardown.sh enables strict mode (set -euo pipefail)"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────
 
 echo ""

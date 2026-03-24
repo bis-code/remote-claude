@@ -4,6 +4,8 @@
 #
 # Usage: sudo ./setup.sh
 
+set -euo pipefail
+
 LOGFILE="/var/log/remote-claude-setup.log"
 SSH_BACKUP="/etc/ssh/sshd_config.backup.remote-claude"
 
@@ -36,7 +38,7 @@ error() {
 
 pause() {
     echo ""
-    read -rp "    Press Enter when ready to continue..."
+    read -rp "    Press Enter when ready to continue..." || true
     echo ""
 }
 
@@ -44,6 +46,13 @@ fail() {
     error "$1"
     exit 1
 }
+
+# ── Pre-flight: root check (before any logging) ─────────────────────────
+
+if [[ $EUID -ne 0 ]]; then
+    printf "%s[ERROR]%s %s\n" "$RED" "$NC" "Please run as root: sudo ./setup.sh" >&2
+    exit 1
+fi
 
 # ── Step 1: Detect OS ──────────────────────────────────────────────────────
 
@@ -57,10 +66,6 @@ fi
 
 if [[ "$ID" != "ubuntu" && "$ID" != "debian" ]]; then
     fail "This script requires Ubuntu or Debian. Detected: $ID"
-fi
-
-if [[ $EUID -ne 0 ]]; then
-    fail "Please run as root: sudo ./setup.sh"
 fi
 
 echo "    OS: $PRETTY_NAME"
@@ -102,7 +107,7 @@ if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
     if ! id "$TARGET_USER" &>/dev/null; then
         auto_step "Creating user '$TARGET_USER'..."
         adduser --disabled-password --gecos "" "$TARGET_USER" >> "$LOGFILE" 2>&1 || fail "Failed to create user $TARGET_USER"
-        usermod -aG sudo "$TARGET_USER" >> "$LOGFILE" 2>&1
+        usermod -aG sudo "$TARGET_USER" >> "$LOGFILE" 2>&1 || fail "Failed to add $TARGET_USER to sudo group"
         echo "    User '$TARGET_USER' created and added to sudo group."
     else
         echo "    User '$TARGET_USER' already exists."
@@ -262,7 +267,7 @@ if [[ -f /etc/ssh/sshd_config ]]; then
     sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
     sed -i 's/^#\?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
 
-    systemctl restart sshd >> "$LOGFILE" 2>&1 || systemctl restart ssh >> "$LOGFILE" 2>&1
+    systemctl restart sshd >> "$LOGFILE" 2>&1 || systemctl restart ssh >> "$LOGFILE" 2>&1 || true
     echo "    SSH hardened: password auth disabled, root login disabled."
     log "SSH hardened and restarted"
 else

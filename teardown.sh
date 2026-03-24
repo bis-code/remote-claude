@@ -4,6 +4,8 @@
 #
 # Usage: sudo ./teardown.sh
 
+set -euo pipefail
+
 SSH_BACKUP="/etc/ssh/sshd_config.backup.remote-claude"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
@@ -36,7 +38,7 @@ echo "  - Node.js (and nodesource repo)"
 echo "  - Tailscale"
 echo "  - SSH hardening (restore original config)"
 echo ""
-read -rp "Continue? (y/n) " CONFIRM
+read -rp "Continue? (y/n) " CONFIRM || true
 
 if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
     echo "Aborted."
@@ -49,7 +51,7 @@ echo ""
 
 if command -v claude &>/dev/null; then
     info "Removing Claude Code..."
-    npm uninstall -g @anthropic-ai/claude-code 2>/dev/null
+    npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true
     info "Claude Code removed."
 else
     warn "Claude Code not installed — skipping."
@@ -59,10 +61,10 @@ fi
 
 if command -v node &>/dev/null; then
     info "Removing Node.js..."
-    apt-get remove -y --purge nodejs 2>/dev/null
+    apt-get remove -y --purge nodejs 2>/dev/null || true
     rm -f /etc/apt/sources.list.d/nodesource.list
     rm -f /etc/apt/keyrings/nodesource.gpg
-    apt-get autoremove -y 2>/dev/null
+    apt-get autoremove -y 2>/dev/null || true
     info "Node.js removed."
 else
     warn "Node.js not installed — skipping."
@@ -72,9 +74,9 @@ fi
 
 if command -v tailscale &>/dev/null; then
     info "Removing Tailscale..."
-    tailscale down 2>/dev/null
-    apt-get remove -y --purge tailscale 2>/dev/null
-    apt-get autoremove -y 2>/dev/null
+    tailscale down 2>/dev/null || true
+    apt-get remove -y --purge tailscale 2>/dev/null || true
+    apt-get autoremove -y 2>/dev/null || true
     info "Tailscale removed."
 else
     warn "Tailscale not installed — skipping."
@@ -86,7 +88,7 @@ if [[ -f "$SSH_BACKUP" ]]; then
     info "Restoring original SSH config from backup..."
     cp "$SSH_BACKUP" /etc/ssh/sshd_config
     rm "$SSH_BACKUP"
-    systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null
+    systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
     info "SSH config restored."
 else
     warn "No SSH backup found at $SSH_BACKUP — skipping."
@@ -95,10 +97,10 @@ fi
 # ── Step 6: Optionally remove user ────────────────────────────────────────
 
 echo ""
-read -rp "Remove a user account too? (y/n) " REMOVE_USER
+read -rp "Remove a user account too? (y/n) " REMOVE_USER || true
 
 if [[ "$REMOVE_USER" == "y" || "$REMOVE_USER" == "Y" ]]; then
-    read -rp "Username to remove: " DEL_USER
+    read -rp "Username to remove: " DEL_USER || true
 
     if [[ -z "$DEL_USER" ]]; then
         error "No username given — skipping."
@@ -107,7 +109,7 @@ if [[ "$REMOVE_USER" == "y" || "$REMOVE_USER" == "Y" ]]; then
     elif ! id "$DEL_USER" &>/dev/null; then
         error "User '$DEL_USER' does not exist — skipping."
     else
-        deluser --remove-home "$DEL_USER" 2>/dev/null
+        deluser --remove-home "$DEL_USER" 2>/dev/null || true
         rm -f "/etc/sudoers.d/$DEL_USER"
         info "User '$DEL_USER', home directory, and sudoers entry removed."
     fi
